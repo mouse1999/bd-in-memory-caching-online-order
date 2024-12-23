@@ -1,7 +1,15 @@
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class CachingOnlineOrderDAO {
+
+
+    private final LoadingCache<String, List<Order>>loadingCache;
 
 
     /**
@@ -10,6 +18,10 @@ public class CachingOnlineOrderDAO {
      * @param ordersDAO OnlineOrdersDAO that will be used by the cache to retrieve a miss.
      */
     public CachingOnlineOrderDAO(OnlineOrdersDAO ordersDAO) {
+        this.loadingCache = CacheBuilder.newBuilder()
+                .maximumSize(1_000_000)
+                .expireAfterWrite(2, TimeUnit.HOURS)
+                .build(CacheLoader.from(ordersDAO::getOrdersByUser));
 
     }
 
@@ -20,6 +32,6 @@ public class CachingOnlineOrderDAO {
      * @return List of orders
      */
     public List<Order> getOrdersByUser(String userId) {
-        return new ArrayList<Order>();
+        return loadingCache.getUnchecked(userId);
     }
 }
